@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="quiz-container">
+        <h1 class="quiz-title">Quiz History</h1>
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        {% if not history %}
+        <div class="empty-history">
+            <p>You haven't taken any quizzes yet.</p>
+            <a href="{{ url_for('index') }}" class="btn-primary">Generate Your First Quiz</a>
+        </div>
+        {% else %}
+        <div class="history-container">
+            {% for quiz in history %}
+            <div class="history-item">
+                <div class="history-header" onclick="toggleQuiz({{ quiz.id }})">
+                    <div class="header-content">
+                        <h3>Quiz taken on {{ quiz.quiz_date.strftime('%B %d, %Y at %I:%M %p') }}</h3>
+                        <p class="video-title">{{ quiz.video_title }}</p>
+                    </div>
+                    <div class="header-right">
+                        <div class="score-display">Score: {{ quiz.score }}/{{ quiz.total_questions }}</div>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                </div>
+
+                <div id="quiz-{{ quiz.id }}" class="quiz-details hidden">
+                    <div class="video-link">
+                        <a href="{{ quiz.video_url }}" target="_blank" rel="noopener noreferrer">
+                            Watch Video <span class="link-icon">↗</span>
+                        </a>
+                    </div>
+
+                    <div class="video-info-container">
+                        <h3>Video Information</h3>
+                        <div class="video-info-grid">
+                            <div class="video-info-item">
+                                <p>Category</p>
+                                <p>{{ quiz.video_info.Category }}</p>
+                            </div>
+                            <div class="video-info-item">
+                                <p>Duration</p>
+                                <p>{{ quiz.video_info.Duration }}</p>
+                            </div>
+                            <div class="video-info-item">
+                                <p>Language</p>
+                                <p>{{ quiz.video_info.Language }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="questions-container">
+                        {% for question in quiz.questions %}
+                        <div class="question-card 
+                            {% if question.question_text in quiz.user_answers %}
+                                {% if quiz.user_answers[question.question_text] == 'unanswered' %}
+                                    unanswered
+                                {% elif quiz.user_answers[question.question_text] == question.correct_answer %}
+                                    correct
+                                {% else %}
+                                    incorrect
+                                {% endif %}
+                            {% endif %}">
+                            <p class="question-text">{{ loop.index }}. {{ question.question_text }}</p>
+                            <div class="options">
+                                {% for option in question.options %}
+                                <div
+                                    class="option 
+                                    {% if option == question.correct_answer %}correct-answer{% endif %}
+                                    {% if question.question_text in quiz.user_answers and quiz.user_answers[question.question_text] == option %}user-answer{% endif %}
+                                    {% if quiz.user_answers[question.question_text] == 'unanswered' %}no-answer{% endif %}">
+                                    {{ option }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function toggleQuiz(quizId) {
+        const quizDetails = document.getElementById(`quiz-${quizId}`);
+        const headerIcon = quizDetails.parentElement.querySelector('.expand-icon');
+
+        if (quizDetails.classList.contains('hidden')) {
+            quizDetails.classList.remove('hidden');
+            headerIcon.style.transform = 'rotate(180deg)';
+        } else {
+            quizDetails.classList.add('hidden');
+            headerIcon.style.transform = 'rotate(0deg)';
+        }
+    }
+</script>
+{% endblock %}

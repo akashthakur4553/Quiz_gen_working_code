@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+{% if current_user.is_authenticated %}
+<div class="container mx-auto px-4 py-8">
+    <div class="quiz-container">
+        <h1 class="quiz-title">Generate Your Quiz</h1>
+        <div class="quiz-form">
+            <div class="form-group">
+                <label for="video-url">YouTube Video URL</label>
+                <div class="url-input-container">
+                    <span class="url-icon">🔗</span>
+                    <input type="text" id="video-url" placeholder="Paste your YouTube video URL here"
+                        class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="difficulty">Difficulty Level</label>
+                <select id="difficulty" class="form-control">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="question-count">Number of Questions: <span id="question-count-value">10</span></label>
+                <div class="range-group">
+                    <input type="range" id="question-count" min="5" max="20" value="10" class="range-slider">
+                </div>
+            </div>
+            <button id="generate-btn" class="btn-primary">
+                <span class="btn-icon">⚡</span>
+                Generate Quiz
+            </button>
+        </div>
+        <div id="error-banner" class="hidden error-message"></div>
+        <div id="quiz-container" class="questions-container"></div>
+    </div>
+</div>
+{% else %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="hero-content">
+        <div class="hero-text">
+            <h1>Transform YouTube Learning Into Interactive Quizzes</h1>
+            <p>Elevate your learning experience with AI-powered quizzes generated from any educational video. Master
+                concepts faster, retain information longer.</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('signup') }}" class="btn-primary">
+                    Start Learning Now
+                    <!-- <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg> -->
+                </a>
+                <a href="#how-it-works" class="btn-secondary">
+                    See How It Works
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<section id="how-it-works" class="how-it-works">
+    <div class="section-container">
+        <div class="section-header">
+            <h2>How QuizTube Works</h2>
+            <p>Three simple steps to enhance your learning experience</p>
+        </div>
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Paste YouTube URL</h3>
+                <p>Choose any educational video you want to learn from</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>AI Analysis</h3>
+                <p>Our AI processes the content and generates relevant questions</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Take Quiz</h3>
+                <p>Test your knowledge and track your progress</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="features-section">
+    <div class="section-container">
+        <div class="section-header">
+            <h2>Why Choose QuizTube?</h2>
+            <p>Powerful features to revolutionize your learning process</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Smart Question Generation</h3>
+                <p>Advanced AI algorithms create meaningful questions that test true understanding</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Results</h3>
+                <p>Get immediate feedback and explanations for each answer</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎓</div>
+                <h3>Personalized Learning</h3>
+                <p>Adjust difficulty levels to match your learning pace</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="section-container">
+        <div class="cta-content">
+            <h2>Ready to Start Learning?</h2>
+            <p>Transform any educational YouTube video into an interactive quiz and enhance your learning experience.
+            </p>
+            <div class="cta-buttons">
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('index') }}#quiz-form" class="cta-button">
+                    Start Learning Now <span class="arrow-icon">→</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('signup') }}" class="cta-button">
+                    Get Started <span class="arrow-icon">→</span>
+                </a>
+                <a href="{{ url_for('login') }}" class="cta-button secondary">
+                    Login to Continue
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
