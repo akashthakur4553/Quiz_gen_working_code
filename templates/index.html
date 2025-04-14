@@ -44,18 +44,26 @@
 {% else %}
 <!-- Hero Section -->
 <div class="hero-section">
+    <div class="spline-background">
+
+
+        <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
+        <spline-viewer url="https://prod.spline.design/fEkqrBcHF4dAKe-t/scene.splinecode"></spline-viewer>
+    </div>
     <div class="hero-content">
         <div class="hero-text">
-            <h1>Transform YouTube Learning Into Interactive Quizzes</h1>
-            <p>Elevate your learning experience with AI-powered quizzes generated from any educational video. Master
-                concepts faster, retain information longer.</p>
+            <!-- <h1>Transform YouTube Learning Into Interactive Quizzes</h1> -->
+            <h1>Transform YouTube Learning</h1>
+            <!-- <p>Elevate your learning experience with AI-powered quizzes generated from any educational video. Master
+                concepts faster, retain information longer.</p> -->
+            <p>Elevate your learning experience with AI-powered quizzes</p>
             <div class="hero-buttons">
                 <a href="{{ url_for('signup') }}" class="btn-primary">
                     Start Learning Now
-                    <!-- <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg> -->
+                    </svg>
                 </a>
                 <a href="#how-it-works" class="btn-secondary">
                     See How It Works
