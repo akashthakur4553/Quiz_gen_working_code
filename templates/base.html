@@ -7,6 +7,9 @@
     <title>QuizTube - YouTube Video Quiz Generator</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='quiztube_icon.png') }}" type="image/png">
+
 </head>
 
 <body>
@@ -14,6 +17,8 @@
         <a href="{{ url_for('index') }}" class="nav-brand">QuizTube</a>
         <div class="nav-links">
             {% if current_user.is_authenticated %}
+            <span class="credits-display">Credits: <span id="credits-count">{{ current_user.credits }}</span></span>
+            <a href="{{ url_for('buy_credits') }}" class="nav-link">Buy Credits</a>
             <a href="{{ url_for('quiz_history') }}" class="nav-link">History</a>
             <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
             {% else %}

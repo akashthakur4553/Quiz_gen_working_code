@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<br>
+<br>
+<div class="payment-success-container">
+    <div class="success-card">
+        {% if already_processed %}
+        <div class="success-icon">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <h2>Payment Already Processed</h2>
+        <p>This payment has already been processed and credits have been added to your account.</p>
+        {% else %}
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>Payment Successful!</h2>
+        <p>Your payment has been processed successfully. {{ credits }} credits have been added to your account.</p>
+        {% endif %}
+        <div class="success-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Return to Dashboard</a>
+            <a href="{{ url_for('buy_credits') }}" class="btn btn-secondary">Buy More Credits</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

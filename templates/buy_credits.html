@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="credits-purchase-container">
+        <h1 class="credits-title">Purchase Credits</h1>
+        <div class="current-credits">
+            <p>Your current credits: <span class="credits-count">{{ current_user.credits }}</span></p>
+        </div>
+
+        <div id="error-banner" class="error-message hidden"></div>
+
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="pricing-header">
+                    <h3>Basic Pack</h3>
+                    <div class="price">$4.99</div>
+                </div>
+                <div class="pricing-features">
+                    <p>10 Credits</p>
+                    <p>Perfect for casual users</p>
+                </div>
+                <button class="btn-primary purchase-btn" data-credits="10" data-price="499">
+                    Purchase
+                </button>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-header">
+                    <h3>Popular Pack</h3>
+                    <div class="price">$9.99</div>
+                </div>
+                <div class="pricing-features">
+                    <p>25 Credits</p>
+                    <p>Best value for money</p>
+                    <p class="popular-tag">Most Popular</p>
+                </div>
+                <button class="btn-primary purchase-btn" data-credits="25" data-price="999">
+                    Purchase
+                </button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="pricing-header">
+                    <h3>Pro Pack</h3>
+                    <div class="price">$19.99</div>
+                </div>
+                <div class="pricing-features">
+                    <p>60 Credits</p>
+                    <p>For power users</p>
+                </div>
+                <button class="btn-primary purchase-btn" data-credits="60" data-price="1999">
+                    Purchase
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    const stripe = Stripe('{{ stripe_public_key }}');
+    const errorBanner = document.getElementById('error-banner');
+
+    function showError(message) {
+        errorBanner.textContent = message;
+        errorBanner.classList.remove('hidden');
+    }
+
+    function hideError() {
+        errorBanner.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.purchase-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const credits = button.dataset.credits;
+            const price = button.dataset.price;
+
+            try {
+                hideError();
+                button.disabled = true;
+                button.textContent = 'Processing...';
+
+                const response = await fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        credits: credits,
+                        price: price
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create checkout session');
+                }
+
+                const result = await stripe.redirectToCheckout({
+                    sessionId: data.id
+                });
+
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'An error occurred. Please try again.');
+                button.disabled = false;
+                button.textContent = 'Purchase';
+            }
+        });
+    });
+</script>
+{% endblock %}

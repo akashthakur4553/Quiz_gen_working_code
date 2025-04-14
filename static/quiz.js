@@ -6,6 +6,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const quizContainer = document.getElementById('quiz-container');
     const questionCountSlider = document.getElementById('question-count');
     const questionCountValue = document.getElementById('question-count-value');
+    const creditsCount = document.getElementById('credits-count');
+    const lowCreditsWarning = document.getElementById('low-credits-warning');
+
+    // Function to update credits display
+    function updateCreditsDisplay(credits) {
+        creditsCount.textContent = credits;
+        if (credits <= 3) {
+            lowCreditsWarning.classList.remove('hidden');
+        } else {
+            lowCreditsWarning.classList.add('hidden');
+        }
+    }
+
+    // Check credits on page load
+    fetch('/get_credits')
+        .then(response => response.json())
+        .then(data => {
+            updateCreditsDisplay(data.credits);
+        })
+        .catch(error => console.error('Error fetching credits:', error));
 
     if (questionCountSlider) {
         questionCountSlider.addEventListener('input', function () {
@@ -56,6 +76,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to generate quiz');
+                }
+
+                // Update credits display after successful quiz generation
+                if (data.remaining_credits !== undefined) {
+                    updateCreditsDisplay(data.remaining_credits);
                 }
 
                 displayQuiz(data);

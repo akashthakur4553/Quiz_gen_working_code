@@ -34,6 +34,8 @@ from functools import wraps
 from flask import g, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import pytz
+import stripe
+from dotenv import load_dotenv
 
 # Load environment variables
 app = Flask(__name__)
@@ -54,6 +56,15 @@ app.config["SECRET_KEY"] = (
     "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
 )
 
+# Load environment variables
+load_dotenv()
+
+# Configure Stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+
+# Add to app configuration
+app.config['STRIPE_PUBLIC_KEY'] = STRIPE_PUBLIC_KEY
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -70,6 +81,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
+    credits = db.Column(db.Integer, nullable=False, default=10)
     quizzes = db.relationship(
         "QuizHistory", backref="user", lazy=True, cascade="all, delete-orphan"
     )
@@ -96,9 +108,10 @@ class QuizHistory(db.Model):
     video_info = db.Column(db.JSON, nullable=False)
 
 
-# Create database tables
+# Create database tables if they don't exist
 with app.app_context():
     db.create_all()
+    print("Database tables created/verified")
 
 
 # Custom login_required decorator
@@ -155,7 +168,7 @@ def signup():
             return jsonify({"error": "Email already registered"}), 400
 
         try:
-            user = User(username=username, email=email)
+            user = User(username=username, email=email, credits=10)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
@@ -309,6 +322,10 @@ def index():
 @login_required
 def generate_quiz():
     try:
+        # Check if user has enough credits
+        if current_user.credits <= 0:
+            return jsonify({"error": "You have no credits remaining. Please purchase more credits to generate quizzes."}), 403
+
         video_url = request.json["video_url"]
         question_count = request.json.get("question_count", 10)
         difficulty = request.json.get("difficulty", "medium")
@@ -395,7 +412,15 @@ def generate_quiz():
         questions = generate_questions(transcript, difficulty, question_count)
         video_info["Captions"] = captions_available
 
-        return jsonify({"video_info": video_info, "questions": questions})
+        # Deduct one credit after successful quiz generation
+        current_user.credits -= 1
+        db.session.commit()
+
+        return jsonify({
+            "video_info": video_info, 
+            "questions": questions,
+            "remaining_credits": current_user.credits
+        })
 
     except Exception as e:
         logging.error(f"Error in generate_quiz: {str(e)}")
@@ -457,6 +482,142 @@ def quiz_history():
         return render_template(
             "history.html", history=[], error="Failed to load quiz history"
         )
+
+
+@app.route("/get_credits", methods=["GET"])
+@login_required
+def get_credits():
+    return jsonify({"credits": current_user.credits})
+
+
+@app.route('/buy_credits')
+@login_required
+def buy_credits():
+    return render_template('buy_credits.html', stripe_public_key=STRIPE_PUBLIC_KEY)
+
+
+@app.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout_session():
+    try:
+        data = request.json
+        credits = int(data['credits'])
+        price = int(data['price'])
+
+        # Create a Stripe checkout session
+        stripe_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'{credits} Quiz Credits',
+                    },
+                    'unit_amount': price,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('buy_credits', _external=True),
+            metadata={
+                'user_id': current_user.id,
+                'credits': credits
+            }
+        )
+
+        return jsonify({'id': stripe_session.id})
+    except Exception as e:
+        print(f"Error creating checkout session: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/payment-success')
+@login_required
+def payment_success():
+    try:
+        # Get the session ID from the URL
+        session_id = request.args.get('session_id')
+        if not session_id:
+            print("No session ID found in URL")
+            return redirect(url_for('buy_credits'))
+
+        # Retrieve the Stripe session to verify payment
+        stripe_session = stripe.checkout.Session.retrieve(session_id)
+        print(f"Retrieved Stripe session: {stripe_session}")
+        
+        # Verify the payment was successful
+        if stripe_session.payment_status != 'paid':
+            print(f"Payment not completed. Status: {stripe_session.payment_status}")
+            return redirect(url_for('buy_credits'))
+
+        # Check if this session has already been processed
+        if stripe_session.metadata.get('processed', 'false') == 'true':
+            print(f"Session {session_id} has already been processed")
+            return render_template('payment_success.html', credits=0, already_processed=True)
+
+        # Get credits from the session metadata
+        credits = int(stripe_session.metadata.get('credits', 0))
+        if credits:
+            # Update the session metadata to mark it as processed
+            stripe.checkout.Session.modify(
+                session_id,
+                metadata={'processed': 'true'}
+            )
+            
+            current_user.credits += credits
+            db.session.commit()
+            print(f"Added {credits} credits to user {current_user.id}")
+            return render_template('payment_success.html', credits=credits, already_processed=False)
+        else:
+            print("No credits found in session metadata")
+            return redirect(url_for('buy_credits'))
+    except Exception as e:
+        print(f"Error in payment_success: {str(e)}")
+        return redirect(url_for('buy_credits'))
+
+
+@app.route('/stripe-webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    endpoint_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        print(f"Invalid payload: {str(e)}")
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Invalid signature: {str(e)}")
+        return 'Invalid signature', 400
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        print(f"Processing completed session: {session}")
+        
+        user_id = session['metadata'].get('user_id')
+        credits = int(session['metadata'].get('credits', 0))
+        
+        if not user_id or not credits:
+            print(f"Missing metadata: user_id={user_id}, credits={credits}")
+            return 'Missing metadata', 400
+        
+        try:
+            user = User.query.get(user_id)
+            if user:
+                user.credits += credits
+                db.session.commit()
+                print(f"Added {credits} credits to user {user_id} via webhook")
+            else:
+                print(f"User {user_id} not found")
+        except Exception as e:
+            print(f"Error updating user credits: {str(e)}")
+            return 'Error updating credits', 500
+
+    return 'Success', 200
 
 
 if __name__ == "__main__":

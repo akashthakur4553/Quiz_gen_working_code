@@ -4,6 +4,11 @@
 <div class="container mx-auto px-4 py-8">
     <div class="quiz-container">
         <h1 class="quiz-title">Generate Your Quiz</h1>
+        <div class="credits-info">
+            <p>Remaining Credits: <span id="credits-count">{{ current_user.credits }}</span></p>
+            <p id="low-credits-warning" class="hidden warning-message">You have low credits remaining. Consider
+                purchasing more credits to continue generating quizzes.</p>
+        </div>
         <div class="quiz-form">
             <div class="form-group">
                 <label for="video-url">YouTube Video URL</label>
